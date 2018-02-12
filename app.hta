@@ -1,0 +1,249 @@
+﻿<!-- 
+    "Поисковой клиент"
+    Версия: 1.0
+    Дата релиза: 26.01.2018
+    Новое в версии:
+        (1.0)
+            1. Изменена форма поисковой строки
+            2. Удалена кнопка поиска
+            3. Запуск поиска реализован через клавишу Enter
+        (0.1)
+            1. Первая beta версия поискового клиента
+ -->
+
+
+<!-- TODO:
+    1. Открытие папки или файла(в приложении по значку)
+    2. Организация поиска по папке
+    3. Организация дополнительного поиска по найденым позициям
+    4. Комбинирование результатов поиска ПО ПАКАМ + ПО ИМЕНАМ
+    5. Справка 
+-->
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge"/>
+    <title>Поисковик</title>
+   
+
+    <HTA:APPLICATION ID="oHTA"
+        applicationName="sercher"
+        border="thin"
+        borderStyle="normal"
+        caption="yes"
+        maximizeButton="yes"
+        minimizeButton="yes"
+        icon="search.ico"
+        showInTaskbar="yes"
+        singleInstance="no"
+        contextMenu="yes"
+        sysMenu="yes"
+        selection="yes"
+        version="1.0"
+        windowState="normal">
+    </HTA:APPLICATION> 
+    
+    <style>
+        * {padding: 0; margin: 0;}
+        body {overflow-x:hidden;}
+        .innerInpt {width: 100%;}
+        table {border: 1px solid grey; border-collapse: collapse; width: 100%; box-sizing: border-box; margin-top: 20px; margin-bottom: 70px;}
+        th {border: 1px solid grey; background-color: #6666FF; color: white; height: 2em;}
+        td {border: 1px solid grey; padding-left: 10px; height: 2em;}
+        tr:nth-child(2n) {background-color: #CCCCFF;}
+        #inputBox {width: 100%;}
+        #inputBox-inner {width: 100%; float: left; margin: 10px auto; text-align: center;}
+        /* #input {width: 600px; height: 30px; padding-left: 10px; } */
+        #input {width: 600px; height: 30px;  outline: none; border: none; border-bottom: 3px solid #FFFF66 ; text-align: center; font-size: 18px;}
+        #button {width: 100px; height: 32px; }
+        #message {text-align: center;  padding-top: 10px;}
+        #attention_msg {color: green; font-size: 20px;}
+        #warning_msg {color: red; font-size: 20px;}
+        .th-num { width: 2%;}
+        .th-file { width: 15%;}
+        .th-dir { width: 60%;}
+        .th-openBtn { width: 5%;}
+        .th-autor { width: 6%;}
+        .th-data-cr { width: 6%;}
+        .th-data-mod { width: 6%;}
+    </style>
+    
+    
+    
+</head>
+<body>
+    <div id="inputBox">
+        <div id="inputBox-inner">
+            <input id="input" type="text" placeholder="поиск...">
+            <!-- старая версия с кнопкой -->
+            <!-- <input  id="button" type="button" value="Найти" onClick="getData()"> -->
+        </div>
+    </div>
+    
+    <div id="message"></div>
+    
+<!--    Таблица с данными-->
+    <table id="result">
+        <caption><h2>Результаты поиска:</h2></caption>
+        <tr>
+            <th class='th-num'>№</th>
+            <th class='th-file'>Файл</th>
+            <th class='th-dir'>Директория</th>
+            <!-- <th class='th-autor'>Автор</th>
+            <th class='th-data-cr'>Дата создания</th>
+            <th class='th-data-mod'>Дата изменения</th> -->
+        </tr>
+
+        <!-- TODO: реализовать дополнительный поиск по параметрам 
+         <tr>
+            <th><input class="innerInpt" type="text"></th>
+            <th><input class="innerInpt" type="text"></th>
+            <th><input class="innerInpt" type="text"></th>
+            <th><input class="innerInpt" type="text"></th>
+            <th><input class="innerInpt" type="text"></th>
+        </tr> -->
+        
+    </table>
+    
+    
+
+    
+    <script language='JScript' charset='utf-8'>
+
+        var inputRow = document.getElementById('input');
+            inputRow.addEventListener('keydown', function(e){
+                if (e.keyCode == 13){
+                    getData();
+                }
+        })
+
+        // Отображение модальных сообщений WSH (только IE)
+        function showPopup(title, text, iconType){
+            // iconType =  0 - кнопка ОК.
+                        // 1 - кнопки ОК и Отмена.
+                        // 2 - кнопки Стоп, Повтор, Пропустить.
+                        // 3 - кнопки Да, Нет, Отмена.
+                        // 4 - кнопки Да и Нет.
+                        // 5 - кнопки Повтор и Отмена.
+                        // 16 - значок Stop.
+                        // 32 - значок Question.
+                        // 48 - значок Exclamation.
+                        // 64 - значок Information.
+            try{
+                var wsh =  new ActiveXObject("WScript.Shell");
+                wsh.Popup(text, 5, title, iconType);
+            } catch (err) {
+                console.log(err);
+            };
+        };
+
+        function openFolder(folder){
+            try{
+                var wsh =  new ActiveXObject("Shell.Application");
+                wsh.Explore(folder);
+            } catch (err) {
+                console.log(err);
+            };
+        };
+
+        // Старый вариант
+        // Отображение сообщений
+        // function showMsg(msg_text, msg_type){
+        //     // Отобразить сообщение по заданному типу(прописаны свойства css)
+        //     // msg_type: 1. attention_msg
+        //     //           2. warning_msg
+        //     var msg = document.getElementById('message');
+        //     var attention_msg = 'attention_msg'; // css класс для отображения уведомлений
+        //     var warning_msg = 'warning_msg';  
+
+        //     msg.innerHTML = ('<h3 id="' + msg_type + '">' + msg_text + '</h3>');
+        //     setTimeout(function(){
+        //         var new_msg = document.getElementById(msg_type);
+        //         // new_msg.parentNode.removeChild(new_msg);
+        //         new_msg.parentElement.removeChild(new_msg);                
+        //     }, 2000);
+        // };
+
+       
+        
+
+
+        function getData(){
+            // Отправляет запрос на сервер с заданными параметрами и строит таблицу по полученному результату
+
+            var inputString = document.getElementById('input').value;
+            var tab = document.getElementById('result');
+
+            // Для организации поиска по файлу и по папке
+
+//            const uriFile = 'http://127.0.0.1:5000/api/file'
+//            const uriFolder = 'http://127.0.0.1:5000/api/folder'
+            const uriFile = 'http://192.168.0.35:81/api/file'
+
+            // Отчистка таблицы перед запросом
+            for (var i=tab.rows.length-1; i>0; i--){
+                tab.deleteRow(i);
+            };
+            
+            // Проверка значения поля запроса на наличие болле 2-х символов
+            // Если все норм, отправляет XHR
+            if (inputString.length > 2){
+                var xhr = new XMLHttpRequest();
+                reqData = encodeURIComponent('{"filters":[{"name":"filename","op":"like","val":"%'+ inputString +'%"}]}');
+                xhr.open("GET", uriFile +'?results_per_page=1000'+ '&q=' + reqData , false);
+                console.log( uriFile + '?q=' + reqData);
+                xhr.setRequestHeader('Content-Type', 'application/json');
+                xhr.send();
+                
+                // Если ответ не 200 пишем ошибку
+                if (xhr.status != 200){
+                    msg = 'Error: ' + xhr.status + '  ;  ' + 'Text: ' + xhr.statusText;
+                    // showMsg(msg, 'warning_msg'); Старый вариант
+                    showPopup('Ошибка', msg, 16);
+                } else {
+                    // Парсим ответ и рисуем таблицу
+                    var jsondata = JSON.parse(xhr.responseText);
+                    console.log(jsondata)
+                    if (jsondata.num_results != 0){
+                        for (var i = 0; i < jsondata.objects.length; i++){
+                            var newRow = tab.insertRow(i+1)
+                            newRow.insertCell(0).innerText = i + 1;
+                            newRow.insertCell(1).innerText = jsondata.objects[i].filename;
+                            filePath = 'F:' + jsondata.objects[i].folder.foldername.substring(8);
+                            newRow.insertCell(2).innerHTML = '<a href="' + filePath + '">' + filePath + '</a>';
+                            normalPath = filePath.replace('\\', '\\\\');
+                            // newRow.insertCell(3).innerText = 'нет данных'; 
+                            // newRow.insertCell(4).innerText = 'нет данных';
+                            // newRow.insertCell(5).innerText = 'нет данных'; 
+
+                            // // Оригинал
+                            // newRow.insertCell(0).innerText = jsondata.objects[i].filename;
+                            // newRow.insertCell(1).innerHTML = jsondata.objects[i].folder.foldername || 'нет данных';
+                            // newRow.insertCell(2).innerText = jsondata.objects[i].autor.autorname || 'нет данных'; 
+                            // newRow.insertCell(3).innerText = jsondata.objects[i].created || 'нет данных';
+                            // newRow.insertCell(4).innerText = jsondata.objects[i].modified || 'нет данных'; 
+                        }
+                    } else {
+                        // Если результат возвращает 0 результатов, пишем сообщение
+                        // showMsg('Не найдено!', 'attention_msg', 2000);
+                        
+                        showPopup('Внимание!', 'Не найдено!', 64);
+
+                    }
+                }
+            } else {
+                // Пишем сообщение если в запросе меньше 3-х символов
+                // showMsg('Запрос должен содержать больше 3-х символов!', 'warning_msg', 2000) Старый вариант
+                showPopup('Внимание!', 'Запрос должен содержать больше 3-х символов!', 48);
+            }
+        };    
+
+
+    </script>
+    
+</body>
+</html>
+
